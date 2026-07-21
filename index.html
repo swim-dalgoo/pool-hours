@@ -22,6 +22,7 @@ if ('serviceWorker' in navigator) {
     --ink:#0C2B33; --ink-2:#3D5A63; --mute:#8FA3AB;
     --tile:#EEF4F3; --lane:#FFFFFF; --line:#D9E4E3;
     --open:#00A39B; --open-soft:#C9EDEA; --soon:#F0A202;
+    --home:#E8912D; --home-soft:#FCEBD6; --home-ink:#8A4E00;
     --lesson:#E4A11B; --lesson-soft:#FBEBCB; --shut:#B7C4C8; --danger:#C0483C;
     --radius:14px;
   }
@@ -48,6 +49,10 @@ if ('serviceWorker' in navigator) {
   .day.today::after{content:"\00B7\C624\B298";font-size:10px;font-weight:600;opacity:.7;margin-left:2px}
   .card{background:var(--lane);border:1px solid var(--line);border-radius:var(--radius);padding:14px 14px 12px;margin-bottom:12px}
   .card.shutday{opacity:.55}
+  .card.home{border-color:var(--home);border-left-width:5px;background:linear-gradient(180deg,var(--home-soft),var(--lane) 60%)}
+  .star{color:var(--home);font-size:15px;margin-right:5px}
+  .homebadge{font-size:11px;font-weight:800;color:var(--home-ink);background:var(--home-soft);
+    border:1px solid var(--home);border-radius:6px;padding:2px 6px;margin-left:6px;vertical-align:middle}
   .card-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:2px}
   .name{font-size:16px;font-weight:800;letter-spacing:-.01em}
   .edit{background:none;border:none;color:var(--mute);font-size:12px;font-weight:700;cursor:pointer;padding:4px;font-family:inherit}
@@ -135,7 +140,9 @@ if ('serviceWorker' in navigator) {
   <div class="sheet">
     <h2 id="sheetTitle">시간표 편집</h2>
     <label class="f">수영장 이름</label>
-    <input type="text" id="poolName" placeholder="예: 충남대 스포렉스 (오픈)">
+    <input type="text" id="poolName" placeholder="예: 충남대 스포렉스">
+    <div style="height:10px"></div>
+    <button class="mini" id="homeToggle" style="width:100%;padding:11px">본진으로 지정</button>
     <div style="height:14px"></div>
     <label class="f">요일</label>
     <div class="days" id="editDays"></div>
@@ -281,16 +288,23 @@ function render(){
   const isToday=viewDay===todayIdx();
   const list=document.getElementById("list"); list.innerHTML="";
   const ordered=pools.map((p,i)=>({p,i,st:statusOf(p.days[viewDay],isToday)}))
-                     .sort((a,b)=>a.st.rank-b.st.rank||a.i-b.i);
+                     .sort((a,b)=>{
+                       const ah=(a.p.home && a.st.rank<4)?0:1;
+                       const bh=(b.p.home && b.st.rank<4)?0:1;
+                       return ah-bh || a.st.rank-b.st.rank || a.i-b.i;
+                     });
   if(!ordered.length){
     list.innerHTML='<p class="none" style="text-align:center;padding:28px 0">등록된 수영장이 없습니다. 아래에서 추가하세요.</p>';
     return;
   }
   for(let k=0;k<ordered.length;k++){
     const p=ordered[k].p, i=ordered[k].i, st=ordered[k].st, ss=p.days[viewDay];
-    const card=document.createElement("div"); card.className="card"+(ss.length?"":" shutday");
+    const card=document.createElement("div"); card.className="card"+(ss.length?"":" shutday")+(p.home?" home":"");
     const top=document.createElement("div"); top.className="card-top";
-    const nm=document.createElement("div"); nm.className="name"; nm.textContent=p.name;
+    const nm=document.createElement("div"); nm.className="name";
+    if(p.home){ const st2=document.createElement("span"); st2.className="star"; st2.textContent="★"; nm.appendChild(st2); }
+    nm.appendChild(document.createTextNode(p.name));
+    if(p.home){ const bd=document.createElement("span"); bd.className="homebadge"; bd.textContent="본진"; nm.appendChild(bd); }
     const ed=document.createElement("button"); ed.className="edit"; ed.textContent="편집"; ed.onclick=()=>openEditor(i);
     top.appendChild(nm); top.appendChild(ed); card.appendChild(top);
     const stEl=document.createElement("div"); stEl.className="state "+st.cls; stEl.textContent=st.text; card.appendChild(stEl);
@@ -334,6 +348,7 @@ function openEditor(idx){
   document.getElementById("sheetTitle").textContent = idx===null?"수영장 추가":"시간표 편집";
   document.getElementById("poolName").value=editing.name;
   document.getElementById("delPool").style.display = idx===null?"none":"block";
+  updateHomeBtn();
   document.getElementById("veil").classList.add("on");
   renderEditor();
 }
@@ -379,8 +394,15 @@ function timeSel(val, onchange){
   return wrap;
 }
 
-document.getElementById("addRow").onclick=()=>{if(!editing.days[editDay])editing.days[editDay]=[];editing.days[editDay].push({s:"09:00",e:"10:00",l:""});renderEditor();};
-document.getElementById("copyDay").onclick=()=>{clip=JSON.parse(JSON.stringify(editing.days[editDay]));toast(DAYS[editDay]+"요일 복사됨");};
+function updateHomeBtn(){
+  const b=document.getElementById("homeToggle");
+  if(editing.home){ b.textContent="★ 본진 (해제하려면 탭)"; b.style.background="var(--home-soft)";
+    b.style.borderColor="var(--home)"; b.style.color="var(--home-ink)"; }
+  else { b.textContent="본진으로 지정"; b.style.background="var(--lane)";
+    b.style.borderColor="var(--line)"; b.style.color="var(--ink-2)"; }
+}
+document.getElementById("homeToggle").onclick=()=>{ editing.home=!editing.home; updateHomeBtn(); };
+document.getElementById("addRow").onclick=()=>{if(!editing.days[editDay])editing.days[editDay]=[];editing.days[editDay].push({s:"09:00",e:"10:00",l:""});renderEditor();};document.getElementById("copyDay").onclick=()=>{clip=JSON.parse(JSON.stringify(editing.days[editDay]));toast(DAYS[editDay]+"요일 복사됨");};
 document.getElementById("pasteDay").onclick=()=>{if(!clip){toast("먼저 복사하세요");return;}editing.days[editDay]=JSON.parse(JSON.stringify(clip));renderEditor();};
 document.getElementById("clearDay").onclick=()=>{editing.days[editDay]=[];renderEditor();};
 document.getElementById("cancel").onclick=()=>document.getElementById("veil").classList.remove("on");
