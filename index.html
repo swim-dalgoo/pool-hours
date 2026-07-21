@@ -84,6 +84,15 @@ if ('serviceWorker' in navigator) {
   input:focus-visible,button:focus-visible,textarea:focus-visible{outline:2px solid var(--open);outline-offset:2px}
   .row{display:flex;gap:6px;align-items:center;margin-bottom:8px}
   .row input[type=time]{flex:0 0 30%} .row input[type=text]{flex:1}
+  .erow{background:var(--lane);border:1px solid var(--line);border-radius:11px;padding:10px;margin-bottom:8px}
+  .erow-top{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+  .tsel{display:inline-flex;align-items:center;gap:3px}
+  .tsel select{font-family:inherit;font-size:15px;font-variant-numeric:tabular-nums;border:1px solid var(--line);
+    border-radius:8px;padding:8px 6px;background:var(--tile);color:var(--ink);font-weight:700}
+  .colon{font-weight:800;color:var(--ink-2)}
+  .tilde{color:var(--mute);font-weight:800;padding:0 3px}
+  .erow-top .del{margin-left:auto}
+  .erow input[type=text]{width:100%}
   .del{flex:0 0 auto;border:1px solid var(--line);background:var(--lane);color:var(--mute);border-radius:9px;
     width:34px;height:36px;font-size:16px;cursor:pointer;font-family:inherit}
   .mini{border:1px solid var(--line);background:var(--lane);color:var(--ink-2);font-size:12px;font-weight:700;
@@ -337,17 +346,36 @@ function renderEditor(){
   });
   const rows=document.getElementById("rows"); rows.innerHTML="";
   editing.days[editDay].forEach((x,j)=>{
-    const r=document.createElement("div"); r.className="row";
-    const a=document.createElement("input"); a.type="time"; a.value=x.s; a.onchange=e=>{x.s=e.target.value;};
-    const b=document.createElement("input"); b.type="time"; b.value=x.e; b.onchange=e=>{x.e=e.target.value;};
-    const l=document.createElement("input"); l.type="text"; l.placeholder="메모"; l.value=x.l||""; l.oninput=e=>{x.l=e.target.value;};
+    const r=document.createElement("div"); r.className="erow";
+    const top=document.createElement("div"); top.className="erow-top";
+    const s=timeSel(x.s, v=>{x.s=v;});
+    const e=timeSel(x.e, v=>{x.e=v;});
+    const til=document.createElement("span"); til.className="tilde"; til.textContent="~";
     const d=document.createElement("button"); d.className="del"; d.textContent="×";
     d.onclick=()=>{editing.days[editDay].splice(j,1);renderEditor();};
-    r.appendChild(a);r.appendChild(b);r.appendChild(l);r.appendChild(d); rows.appendChild(r);
+    top.appendChild(s); top.appendChild(til); top.appendChild(e); top.appendChild(d);
+    const l=document.createElement("input"); l.type="text"; l.placeholder="메모 (예: 1부, 강습)";
+    l.value=x.l||""; l.oninput=ev=>{x.l=ev.target.value;};
+    r.appendChild(top); r.appendChild(l); rows.appendChild(r);
   });
   if(!editing.days[editDay].length){
     const p=document.createElement("p"); p.className="none"; p.textContent="휴관 (시간대 없음)"; rows.appendChild(p);
   }
+}
+
+function timeSel(val, onchange){
+  const wrap=document.createElement("span"); wrap.className="tsel";
+  const hh=document.createElement("select"), mm=document.createElement("select");
+  for(let h=0;h<24;h++){const o=document.createElement("option");const v=String(h).padStart(2,"0");o.value=v;o.textContent=v;hh.appendChild(o);}
+  for(let m=0;m<60;m+=5){const o=document.createElement("option");const v=String(m).padStart(2,"0");o.value=v;o.textContent=v;mm.appendChild(o);}
+  const p=(val||"09:00").split(":"); const H=p[0]||"09", M=p[1]||"00";
+  if(!Array.from(mm.options).some(o=>o.value===M)){const o=document.createElement("option");o.value=M;o.textContent=M;mm.appendChild(o);}
+  hh.value=H; mm.value=M;
+  const fire=()=>onchange(hh.value+":"+mm.value);
+  hh.onchange=fire; mm.onchange=fire;
+  const c=document.createElement("span"); c.className="colon"; c.textContent=":";
+  wrap.appendChild(hh); wrap.appendChild(c); wrap.appendChild(mm);
+  return wrap;
 }
 
 document.getElementById("addRow").onclick=()=>{editing.days[editDay].push({s:"09:00",e:"10:00",l:""});renderEditor();};
