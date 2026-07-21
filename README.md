@@ -10,7 +10,7 @@ time table for pool
 
 ## 바로 쓰기
 
-https://swim-dalgoo.github.io/pool-hours/
+https://swim-dalgoo.github.io/poolTT/
 
 휴대폰에서는 크롬으로 연 뒤 메뉴 → "홈 화면에 추가" 하면 앱처럼 쓸 수 있습니다.
 
