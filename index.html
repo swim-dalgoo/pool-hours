@@ -327,8 +327,9 @@ function render(){
 }
 
 function openEditor(idx){
-  editing = idx===null ? {id:"p"+Date.now(),name:"",days:[[],[],[],[],[],[],[]]}
+  editing = idx===null ? {id:"p"+Date.now(),name:"",days:[[],[],[],[],[],[],[],[]]}
                        : JSON.parse(JSON.stringify(pools[idx]));
+  while(editing.days.length<8) editing.days.push([]);
   editing._idx=idx; editDay=viewDay;
   document.getElementById("sheetTitle").textContent = idx===null?"수영장 추가":"시간표 편집";
   document.getElementById("poolName").value=editing.name;
@@ -341,7 +342,7 @@ function renderEditor(){
   DAYS.forEach((d,i)=>{
     const b=document.createElement("button");
     b.className="day"+(i===editDay?" on":"");
-    b.textContent=d+(editing.days[i].length?"":"·휴");
+    b.textContent=d+((editing.days[i]||[]).length?"":"·휴");
     b.onclick=()=>{editDay=i;renderEditor();}; bar.appendChild(b);
   });
   const rows=document.getElementById("rows"); rows.innerHTML="";
@@ -378,7 +379,7 @@ function timeSel(val, onchange){
   return wrap;
 }
 
-document.getElementById("addRow").onclick=()=>{editing.days[editDay].push({s:"09:00",e:"10:00",l:""});renderEditor();};
+document.getElementById("addRow").onclick=()=>{if(!editing.days[editDay])editing.days[editDay]=[];editing.days[editDay].push({s:"09:00",e:"10:00",l:""});renderEditor();};
 document.getElementById("copyDay").onclick=()=>{clip=JSON.parse(JSON.stringify(editing.days[editDay]));toast(DAYS[editDay]+"요일 복사됨");};
 document.getElementById("pasteDay").onclick=()=>{if(!clip){toast("먼저 복사하세요");return;}editing.days[editDay]=JSON.parse(JSON.stringify(clip));renderEditor();};
 document.getElementById("clearDay").onclick=()=>{editing.days[editDay]=[];renderEditor();};
