@@ -1,4 +1,22 @@
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>수영장 자유수영 시간표</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0C2B33">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
 <style>
   :root{
     --ink:#0C2B33; --ink-2:#3D5A63; --mute:#8FA3AB;
@@ -82,6 +100,8 @@
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
+</head>
+<body>
 <div class="wrap">
   <header>
     <h1>수영장 자유수영 시간표</h1>
@@ -406,3 +426,6 @@ document.getElementById("hAdd").onclick=async()=>{
 load();
 setInterval(render,60000);
 </script>
+
+</body>
+</html>
