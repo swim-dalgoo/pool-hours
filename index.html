@@ -1,0 +1,408 @@
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --ink:#0C2B33; --ink-2:#3D5A63; --mute:#8FA3AB;
+    --tile:#EEF4F3; --lane:#FFFFFF; --line:#D9E4E3;
+    --open:#00A39B; --open-soft:#C9EDEA; --soon:#F0A202;
+    --lesson:#E4A11B; --lesson-soft:#FBEBCB; --shut:#B7C4C8; --danger:#C0483C;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--tile);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR","Malgun Gothic",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:720px;margin:0 auto;padding:20px 16px 64px}
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+  h1{font-size:20px;font-weight:800;letter-spacing:-.02em;margin:0}
+  .sub{font-size:12px;color:var(--mute);margin:6px 0 18px;line-height:1.5}
+  .clock{font-variant-numeric:tabular-nums;font-size:13px;color:var(--ink-2);font-weight:600;white-space:nowrap}
+  .warn{background:#FBEBCB;border:1px solid #EFD79B;color:#7A5502;font-size:12px;font-weight:700;
+        padding:10px 12px;border-radius:11px;margin:0 0 14px;line-height:1.6;display:none}
+  .warn.on{display:block}
+  .hbar{display:block;width:100%;text-align:left;font-family:inherit;font-size:12px;font-weight:700;
+    border:1px solid var(--line);background:var(--lane);color:var(--mute);border-radius:11px;
+    padding:10px 12px;margin:0 0 14px;cursor:pointer}
+  .hbar.on{background:#FBEBCB;border-color:#EFD79B;color:#7A5502}
+  .days{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:2px}
+  .day{flex:0 0 auto;border:1px solid var(--line);background:var(--lane);color:var(--ink-2);
+    font-size:13px;font-weight:700;padding:8px 13px;border-radius:999px;cursor:pointer;font-family:inherit}
+  .day.on{background:var(--ink);border-color:var(--ink);color:#fff}
+  .day.today::after{content:"\00B7\C624\B298";font-size:10px;font-weight:600;opacity:.7;margin-left:2px}
+  .card{background:var(--lane);border:1px solid var(--line);border-radius:var(--radius);padding:14px 14px 12px;margin-bottom:12px}
+  .card.shutday{opacity:.55}
+  .card-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:2px}
+  .name{font-size:16px;font-weight:800;letter-spacing:-.01em}
+  .edit{background:none;border:none;color:var(--mute);font-size:12px;font-weight:700;cursor:pointer;padding:4px;font-family:inherit}
+  .state{font-size:12.5px;font-weight:700;margin-bottom:11px;font-variant-numeric:tabular-nums}
+  .state.open{color:var(--open)} .state.soon{color:var(--soon)} .state.shut{color:var(--mute)}
+  .lane{position:relative;height:26px;border-radius:6px;
+    background:repeating-linear-gradient(90deg,var(--tile) 0 1px,transparent 1px 100%);
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:0 0 8px}
+  .seg{position:absolute;top:5px;height:16px;border-radius:4px;background:var(--open);opacity:.85}
+  .seg.lesson{background:var(--lesson);top:9px;height:8px;opacity:1;border-radius:3px}
+  .seg.past{background:var(--shut);opacity:.6}
+  .now{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--danger);border-radius:2px}
+  .now::after{content:"";position:absolute;top:-3px;left:-2px;width:6px;height:6px;border-radius:50%;background:var(--danger)}
+  .ticks{display:flex;justify-content:space-between;font-size:10px;color:var(--mute);font-variant-numeric:tabular-nums;margin-bottom:10px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:12px;font-variant-numeric:tabular-nums;border:1px solid var(--open-soft);background:var(--open-soft);
+    color:#075E5A;border-radius:7px;padding:4px 8px;font-weight:700}
+  .chip.lesson{background:var(--lesson-soft);border-color:#EFD79B;color:#7A5502}
+  .chip.past{background:var(--tile);border-color:var(--line);color:var(--mute)}
+  .chip small{font-weight:600;opacity:.75;margin-left:4px}
+  .none{font-size:12.5px;color:var(--mute);font-weight:600}
+  .add{width:100%;border:1px dashed var(--line);background:none;color:var(--ink-2);font-weight:700;font-size:14px;
+    padding:14px;border-radius:var(--radius);cursor:pointer;font-family:inherit}
+  .foot{margin-top:18px;display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+  .link{background:none;border:none;color:var(--mute);font-size:12px;cursor:pointer;text-decoration:underline;font-family:inherit;padding:0}
+  .veil{position:fixed;inset:0;background:rgba(12,43,51,.45);display:none;align-items:flex-end;justify-content:center;z-index:20}
+  .veil.on{display:flex}
+  .sheet{background:var(--tile);width:100%;max-width:720px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px 16px 28px}
+  .sheet h2{font-size:16px;margin:0 0 14px;font-weight:800}
+  label.f{display:block;font-size:11px;font-weight:800;color:var(--mute);margin:0 0 5px;letter-spacing:.04em}
+  input[type=text],input[type=time],textarea{font-family:inherit;font-size:14px;color:var(--ink);background:var(--lane);
+    border:1px solid var(--line);border-radius:9px;padding:9px 10px;width:100%;font-variant-numeric:tabular-nums}
+  textarea{min-height:120px;font-size:12px;line-height:1.5}
+  input:focus-visible,button:focus-visible,textarea:focus-visible{outline:2px solid var(--open);outline-offset:2px}
+  .row{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+  .row input[type=time]{flex:0 0 30%} .row input[type=text]{flex:1}
+  .del{flex:0 0 auto;border:1px solid var(--line);background:var(--lane);color:var(--mute);border-radius:9px;
+    width:34px;height:36px;font-size:16px;cursor:pointer;font-family:inherit}
+  .mini{border:1px solid var(--line);background:var(--lane);color:var(--ink-2);font-size:12px;font-weight:700;
+    border-radius:9px;padding:8px 11px;cursor:pointer;font-family:inherit}
+  .btns{display:flex;gap:8px;margin-top:16px}
+  .btn{flex:1;border:none;border-radius:11px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit}
+  .btn.primary{background:var(--ink);color:#fff}
+  .btn.ghost{background:var(--lane);color:var(--ink-2);border:1px solid var(--line)}
+  .btn.danger{background:none;color:var(--danger);border:1px solid var(--line);flex:0 0 auto}
+  .hint{font-size:11.5px;color:var(--mute);margin:10px 0 0;line-height:1.6}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;
+    font-size:13px;font-weight:700;padding:10px 16px;border-radius:999px;opacity:0;transition:opacity .2s;z-index:30;pointer-events:none}
+  .toast.on{opacity:1}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>수영장 자유수영 시간표</h1>
+    <div class="clock" id="clock"></div>
+  </header>
+  <p class="sub">자기가 다니는 수영장을 추가해서 쓰는 자유수영 시간표입니다. 지금 갈 수 있는 곳부터 위에 뜹니다.</p>
+  <div class="warn" id="warn"></div>
+  <button class="hbar" id="holidayBar"></button>
+
+  <div class="days" id="days"></div>
+  <div id="list"></div>
+  <button class="add" id="addPool">+ 수영장 추가</button>
+
+  <div class="foot">
+    <button class="link" id="backup">백업 · 복원</button>
+    <button class="link" id="holidayList">공휴일 날짜 관리</button>
+    <button class="link" id="reset">기본 시간표로 되돌리기</button>
+  </div>
+</div>
+
+<div class="veil" id="veil">
+  <div class="sheet">
+    <h2 id="sheetTitle">시간표 편집</h2>
+    <label class="f">수영장 이름</label>
+    <input type="text" id="poolName" placeholder="예: 충남대 스포렉스 (오픈)">
+    <div style="height:14px"></div>
+    <label class="f">요일</label>
+    <div class="days" id="editDays"></div>
+    <div id="rows"></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+      <button class="mini" id="addRow">+ 시간대 추가</button>
+      <button class="mini" id="copyDay">이 요일 복사</button>
+      <button class="mini" id="pasteDay">붙여넣기</button>
+      <button class="mini" id="clearDay">이 요일 비우기</button>
+    </div>
+    <p class="hint">시간대를 하나도 넣지 않으면 그 요일은 휴관으로 표시됩니다. 메모에 "강습"이 들어가면 노란 띠로 따로 표시되고, 개장 여부 판정에서는 빠집니다. 공휴일에 일요일과 똑같이 운영한다면 일요일에서 "이 요일 복사" 후 공휴일 탭에서 "붙여넣기" 하세요.</p>
+    <div class="btns">
+      <button class="btn ghost" id="cancel">취소</button>
+      <button class="btn primary" id="save">저장</button>
+    </div>
+    <div class="btns"><button class="btn danger" id="delPool">이 수영장 삭제</button></div>
+  </div>
+</div>
+
+<div class="veil" id="veil2">
+  <div class="sheet">
+    <h2>백업 · 복원</h2>
+    <p class="hint" style="margin:0 0 10px">아래 텍스트가 지금 시간표 전체입니다. 복사해 두면 어디서든 복원할 수 있고, 남에게 보내면 그 사람도 똑같은 시간표로 시작합니다.</p>
+    <textarea id="dump"></textarea>
+    <div class="btns">
+      <button class="btn ghost" id="copyDump">복사</button>
+      <button class="btn primary" id="applyDump">붙여넣은 내용으로 복원</button>
+    </div>
+    <div class="btns"><button class="btn ghost" id="closeDump">닫기</button></div>
+  </div>
+</div>
+
+<div class="veil" id="veil3">
+  <div class="sheet">
+    <h2>공휴일 날짜</h2>
+    <p class="hint" style="margin:0 0 12px">여기 등록된 날짜에는 공휴일 시간표가 자동으로 뜹니다. 설·추석·부처님오신날처럼 해마다 날짜가 바뀌는 날은 직접 넣어주세요.</p>
+    <div class="row"><input type="date" id="hDate"><button class="mini" id="hAdd">추가</button></div>
+    <div id="hList"></div>
+    <div class="btns"><button class="btn ghost" id="hClose">닫기</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DAYS=["월","화","수","목","금","토","일","공휴일"];
+const SEED_HOLIDAYS=["2026-08-15","2026-10-03","2026-10-09","2026-12-25","2027-01-01","2027-03-01","2027-05-05","2027-06-06","2027-08-15","2027-10-03","2027-10-09","2027-12-25"];
+const KEY="pool-hours-dist-v3";
+const T0=5*60, T1=21.5*60;
+
+function seed(){
+  const s=(a,b,l)=>({s:a,e:b,l:l||""});
+  // 아래는 형식을 보여주는 예시입니다. 편집에서 이름·시간을 고치거나, 삭제하고 직접 추가하세요.
+  const week=[s("06:00","08:00","오전"),s("18:00","20:00","저녁")];
+  const wknd=[s("07:00","12:00"),s("14:00","18:00")];
+  return [
+    {id:"ex1",name:"예시 수영장 (지우고 시작하세요)",
+     days:[[],week,week,week,week,wknd,wknd,[]]}
+  ];
+}
+
+/* storage: try the host API, then browser storage, then memory */
+const store={
+  async get(){
+    try{ if(window.storage){ const r=await window.storage.get(KEY); if(r&&r.value) return r.value; } }catch(e){}
+    try{ const v=window.localStorage.getItem(KEY); if(v) return v; }catch(e){}
+    return null;
+  },
+  async set(v){
+    let ok=false;
+    try{ if(window.storage){ await window.storage.set(KEY,v); ok=true; } }catch(e){}
+    try{ window.localStorage.setItem(KEY,v); ok=true; }catch(e){}
+    return ok;
+  }
+};
+
+let pools=[], holidays=SEED_HOLIDAYS.slice(), holidayToday=null, viewDay=0, editing=null, editDay=0, clip=null, warned=false;
+
+function weekIdx(){return (new Date().getDay()+6)%7;}
+function isoToday(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function holidayNow(){return holidayToday===null ? holidays.indexOf(isoToday())>=0 : holidayToday;}
+function todayIdx(){return holidayNow()?7:weekIdx();}
+function nowMin(){const d=new Date();return d.getHours()*60+d.getMinutes();}
+function toMin(t){const p=t.split(":");return (+p[0])*60+(+p[1]);}
+function fmt(m){return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");}
+function dur(m){const h=Math.floor(m/60),r=m%60;return h?(r?h+"시간 "+r+"분":h+"시간"):r+"분";}
+function isLesson(x){return (x.l||"").indexOf("강습")>=0;}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+
+async function load(){
+  const raw=await store.get();
+  try{
+    const v = raw ? JSON.parse(raw) : null;
+    if(v && v.pools){ pools=v.pools; holidays=v.holidays||[]; }
+    else if(Array.isArray(v)){ pools=v.map(p=>{while(p.days.length<8)p.days.push([]);return p;}); }
+    else pools=seed();
+  }catch(e){ pools=seed(); }
+  viewDay=todayIdx();
+  if(!raw) await persist(true);
+  render();
+}
+async function persist(quiet){
+  const ok=await store.set(JSON.stringify({pools:pools,holidays:holidays}));
+  if(!ok && !warned){
+    warned=true;
+    const w=document.getElementById("warn");
+    w.className="warn on";
+    w.textContent="이 화면에서는 자동 저장이 막혀 있습니다. 아래 '백업 · 복원'에서 시간표를 복사해 두시고, 파일을 내려받아 브라우저에서 열면 자동 저장이 됩니다.";
+  }
+  if(!quiet && ok) toast("저장했습니다");
+  return ok;
+}
+function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("on");setTimeout(()=>t.classList.remove("on"),1600);}
+
+function statusOf(sessions,isToday){
+  const real=sessions.filter(x=>!isLesson(x));
+  if(!sessions.length) return {rank:4,cls:"shut",text:"오늘 휴관"};
+  if(!isToday) return {rank:0,cls:"",text:sessions.length+"개 시간대"};
+  const n=nowMin();
+  for(const x of real){ if(n>=toMin(x.s)&&n<toMin(x.e)) return {rank:0,cls:"open",text:"지금 개장 중 · "+dur(toMin(x.e)-n)+" 남음"}; }
+  const next=real.map(x=>toMin(x.s)).filter(m=>m>n).sort((a,b)=>a-b)[0];
+  if(next!==undefined) return {rank:1,cls:"soon",text:fmt(next)+" 개장 · "+dur(next-n)+" 뒤"};
+  return {rank:3,cls:"shut",text:"오늘 운영 종료"};
+}
+
+function render(){
+  const now=new Date();
+  document.getElementById("clock").textContent=
+    (holidayNow()?"공휴일 ":DAYS[weekIdx()]+"요일 ")+String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");
+
+  const bar=document.getElementById("days"); bar.innerHTML="";
+  DAYS.forEach((d,i)=>{
+    const b=document.createElement("button");
+    b.className="day"+(i===viewDay?" on":"")+(i===todayIdx()?" today":"");
+    b.textContent=d; b.onclick=()=>{viewDay=i;render();}; bar.appendChild(b);
+  });
+  const hb=document.getElementById("holidayBar");
+  hb.className="hbar"+(holidayNow()?" on":"");
+  hb.textContent = holidayNow()
+    ? "오늘은 공휴일로 보는 중 — 공휴일 시간표를 표시합니다"
+    : "오늘을 공휴일로 보기";
+
+  const isToday=viewDay===todayIdx();
+  const list=document.getElementById("list"); list.innerHTML="";
+  const ordered=pools.map((p,i)=>({p,i,st:statusOf(p.days[viewDay],isToday)}))
+                     .sort((a,b)=>a.st.rank-b.st.rank||a.i-b.i);
+  if(!ordered.length){
+    list.innerHTML='<p class="none" style="text-align:center;padding:28px 0">등록된 수영장이 없습니다. 아래에서 추가하세요.</p>';
+    return;
+  }
+  for(let k=0;k<ordered.length;k++){
+    const p=ordered[k].p, i=ordered[k].i, st=ordered[k].st, ss=p.days[viewDay];
+    const card=document.createElement("div"); card.className="card"+(ss.length?"":" shutday");
+    const top=document.createElement("div"); top.className="card-top";
+    const nm=document.createElement("div"); nm.className="name"; nm.textContent=p.name;
+    const ed=document.createElement("button"); ed.className="edit"; ed.textContent="편집"; ed.onclick=()=>openEditor(i);
+    top.appendChild(nm); top.appendChild(ed); card.appendChild(top);
+    const stEl=document.createElement("div"); stEl.className="state "+st.cls; stEl.textContent=st.text; card.appendChild(stEl);
+
+    if(ss.length){
+      const lane=document.createElement("div"); lane.className="lane";
+      ss.forEach(x=>{
+        const a=toMin(x.s),b=toMin(x.e);
+        const seg=document.createElement("div");
+        seg.className="seg"+(isLesson(x)?" lesson":"")+((isToday&&nowMin()>=b&&!isLesson(x))?" past":"");
+        seg.style.left=((a-T0)/(T1-T0)*100)+"%";
+        seg.style.width=((b-a)/(T1-T0)*100)+"%";
+        lane.appendChild(seg);
+      });
+      if(isToday&&nowMin()>=T0&&nowMin()<=T1){
+        const mk=document.createElement("div"); mk.className="now";
+        mk.style.left=((nowMin()-T0)/(T1-T0)*100)+"%"; lane.appendChild(mk);
+      }
+      card.appendChild(lane);
+      const ticks=document.createElement("div"); ticks.className="ticks";
+      ticks.innerHTML="<span>05</span><span>09</span><span>13</span><span>17</span><span>21</span>";
+      card.appendChild(ticks);
+      const chips=document.createElement("div"); chips.className="chips";
+      ss.forEach(x=>{
+        const c=document.createElement("span");
+        c.className="chip"+(isLesson(x)?" lesson":"")+((isToday&&nowMin()>=toMin(x.e)&&!isLesson(x))?" past":"");
+        c.innerHTML=x.s+"–"+x.e+(x.l?" <small>"+esc(x.l)+"</small>":"");
+        chips.appendChild(c);
+      });
+      card.appendChild(chips);
+    }
+    list.appendChild(card);
+  }
+}
+
+function openEditor(idx){
+  editing = idx===null ? {id:"p"+Date.now(),name:"",days:[[],[],[],[],[],[],[]]}
+                       : JSON.parse(JSON.stringify(pools[idx]));
+  editing._idx=idx; editDay=viewDay;
+  document.getElementById("sheetTitle").textContent = idx===null?"수영장 추가":"시간표 편집";
+  document.getElementById("poolName").value=editing.name;
+  document.getElementById("delPool").style.display = idx===null?"none":"block";
+  document.getElementById("veil").classList.add("on");
+  renderEditor();
+}
+function renderEditor(){
+  const bar=document.getElementById("editDays"); bar.innerHTML="";
+  DAYS.forEach((d,i)=>{
+    const b=document.createElement("button");
+    b.className="day"+(i===editDay?" on":"");
+    b.textContent=d+(editing.days[i].length?"":"·휴");
+    b.onclick=()=>{editDay=i;renderEditor();}; bar.appendChild(b);
+  });
+  const rows=document.getElementById("rows"); rows.innerHTML="";
+  editing.days[editDay].forEach((x,j)=>{
+    const r=document.createElement("div"); r.className="row";
+    const a=document.createElement("input"); a.type="time"; a.value=x.s; a.onchange=e=>{x.s=e.target.value;};
+    const b=document.createElement("input"); b.type="time"; b.value=x.e; b.onchange=e=>{x.e=e.target.value;};
+    const l=document.createElement("input"); l.type="text"; l.placeholder="메모"; l.value=x.l||""; l.oninput=e=>{x.l=e.target.value;};
+    const d=document.createElement("button"); d.className="del"; d.textContent="×";
+    d.onclick=()=>{editing.days[editDay].splice(j,1);renderEditor();};
+    r.appendChild(a);r.appendChild(b);r.appendChild(l);r.appendChild(d); rows.appendChild(r);
+  });
+  if(!editing.days[editDay].length){
+    const p=document.createElement("p"); p.className="none"; p.textContent="휴관 (시간대 없음)"; rows.appendChild(p);
+  }
+}
+
+document.getElementById("addRow").onclick=()=>{editing.days[editDay].push({s:"09:00",e:"10:00",l:""});renderEditor();};
+document.getElementById("copyDay").onclick=()=>{clip=JSON.parse(JSON.stringify(editing.days[editDay]));toast(DAYS[editDay]+"요일 복사됨");};
+document.getElementById("pasteDay").onclick=()=>{if(!clip){toast("먼저 복사하세요");return;}editing.days[editDay]=JSON.parse(JSON.stringify(clip));renderEditor();};
+document.getElementById("clearDay").onclick=()=>{editing.days[editDay]=[];renderEditor();};
+document.getElementById("cancel").onclick=()=>document.getElementById("veil").classList.remove("on");
+document.getElementById("addPool").onclick=()=>openEditor(null);
+
+document.getElementById("save").onclick=async()=>{
+  const name=document.getElementById("poolName").value.trim();
+  if(!name){toast("이름을 입력하세요");return;}
+  editing.name=name;
+  for(const day of editing.days){
+    for(const x of day){ if(toMin(x.e)<=toMin(x.s)){toast("종료 시각이 시작보다 빨라요");return;} }
+    day.sort((a,b)=>toMin(a.s)-toMin(b.s));
+  }
+  const idx=editing._idx; delete editing._idx;
+  if(idx===null) pools.push(editing); else pools[idx]=editing;
+  document.getElementById("veil").classList.remove("on");
+  await persist(); render();
+};
+document.getElementById("delPool").onclick=async()=>{
+  if(editing._idx===null) return;
+  pools.splice(editing._idx,1);
+  document.getElementById("veil").classList.remove("on");
+  await persist(); render();
+};
+document.getElementById("reset").onclick=async()=>{pools=seed();await persist(true);viewDay=todayIdx();render();toast("기본 시간표로 되돌렸습니다");};
+
+const veil2=document.getElementById("veil2");
+document.getElementById("backup").onclick=()=>{document.getElementById("dump").value=JSON.stringify({pools:pools,holidays:holidays});veil2.classList.add("on");};
+document.getElementById("closeDump").onclick=()=>veil2.classList.remove("on");
+document.getElementById("copyDump").onclick=()=>{
+  const t=document.getElementById("dump"); t.select();
+  try{ document.execCommand("copy"); toast("복사했습니다"); }catch(e){ toast("직접 길게 눌러 복사하세요"); }
+};
+document.getElementById("applyDump").onclick=async()=>{
+  try{
+    const v=JSON.parse(document.getElementById("dump").value);
+    if(Array.isArray(v)){ pools=v.map(p=>{while(p.days.length<8)p.days.push([]);return p;}); }
+    else if(v&&v.pools){ pools=v.pools; holidays=v.holidays||[]; }
+    else throw 0; veil2.classList.remove("on"); await persist(true); render(); toast("복원했습니다");
+  }catch(e){ toast("형식이 맞지 않습니다"); }
+};
+
+document.getElementById("holidayBar").onclick=()=>{
+  holidayToday = !holidayNow();
+  viewDay = todayIdx();
+  render();
+};
+
+const veil3=document.getElementById("veil3");
+function renderHolidays(){
+  const box=document.getElementById("hList"); box.innerHTML="";
+  const list=holidays.slice().sort();
+  if(!list.length){ box.innerHTML='<p class="none">등록된 날짜가 없습니다.</p>'; return; }
+  list.forEach(d=>{
+    const r=document.createElement("div"); r.className="row";
+    const t=document.createElement("div"); t.style.flex="1"; t.style.fontWeight="700";
+    t.style.fontSize="13px"; t.style.fontVariantNumeric="tabular-nums"; t.textContent=d;
+    const x=document.createElement("button"); x.className="del"; x.textContent="×";
+    x.onclick=async()=>{ holidays=holidays.filter(v=>v!==d); await persist(true); renderHolidays(); render(); };
+    r.appendChild(t); r.appendChild(x); box.appendChild(r);
+  });
+}
+document.getElementById("holidayList").onclick=()=>{renderHolidays();veil3.classList.add("on");};
+document.getElementById("hClose").onclick=()=>veil3.classList.remove("on");
+document.getElementById("hAdd").onclick=async()=>{
+  const v=document.getElementById("hDate").value;
+  if(!v){ toast("날짜를 고르세요"); return; }
+  if(holidays.indexOf(v)<0) holidays.push(v);
+  await persist(true); renderHolidays(); viewDay=todayIdx(); render(); toast("추가했습니다");
+};
+
+load();
+setInterval(render,60000);
+</script>
